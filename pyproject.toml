@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sanchaya"
+version = "0.1.0"
+description = "Multi-agent LLM trading research platform for Indian equity markets"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+keywords = ["trading", "llm", "agents", "indian-markets", "quant"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.1.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "ipython>=8.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/chirag06/sanchaya"
+Repository = "https://github.com/chirag06/sanchaya"
+Issues = "https://github.com/chirag06/sanchaya/issues"
+
+# -------- Tool configuration below --------
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sanchaya"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort (import sorting)
+    "B",     # bugbear (common bugs)
+    "UP",    # pyupgrade (modern syntax)
+    "N",     # naming conventions
+    "C90",   # complexity
+    "RUF",   # ruff-specific
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]  # allow long lines in tests
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "-v",
+    "--cov=sanchaya",
+    "--cov-report=term-missing",
+]
+testpaths = ["tests"]
+pythonpath = ["src"]
