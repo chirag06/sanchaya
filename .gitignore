@@ -43,5 +43,7 @@ logs/
 *.sqlite3
 
 #project memory
-docs/
+docs/project-memory.md
 
+learn/concepts-checklist.md
+learn/quiz-log.md
