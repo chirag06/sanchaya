@@ -82,7 +82,7 @@ class Settings(BaseSettings):
         description="Logging level: DEBUG, INFO, WARNING, ERROR.",
     )
 
-    def is_live(self) -> str:
+    def is_live(self) -> bool:
         """Return True if the system is in live (real-money) trading mode."""
         return self.trading_mode == TradingMode.LIVE
 
