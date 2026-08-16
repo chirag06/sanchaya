@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
+import pytest
 
 from sanchaya.config import Settings
 from sanchaya.data.kite_models import KiteSessionData, KiteTokenResponse
@@ -46,10 +47,26 @@ class KiteAuthManager:
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def exchange_token(self, request_token: str) -> KiteSessionData:
-        """Return the session token that can be used
+        """Exchange an OAuth request token for a Kite session.
+        Implements step 2 of Kite's login flow: computes the SHA-256 checksum
+        proving possession of the API secret, POSTs it with the request token
+        to Kite's session endpoint, and validates the response at the boundary.
+
+        Args:
+            request_token: Short-lived token from the post-login browser
+                redirect. Expires within minutes of issue.
+
         Returns:
-            Kite session
+            Validated session data, including the access token used to
+            authenticate all subsequent Kite API calls.
+
+        Raises:
+            httpx.HTTPStatusError: If Kite rejects the exchange (expired or
+                already-used request token, bad credentials).
+            pydantic.ValidationError: If the response doesn't match the
+                expected shape.
         """
+
         response = httpx.post(
             KITE_SESSION_URL,
             headers={"X-Kite-Version": "3"},
@@ -92,7 +109,20 @@ class KiteAuthManager:
         if login_time >= expiry_time:
             expiry_time += timedelta(days=1)
 
+        # NOTE: naive datetime comparison — assumes both login_time (IST from
+        # Kite) and now_fn run in IST. Breaks on a UTC server; fix with proper
+        # tz-aware datetimes.
         if self._now() >= expiry_time:
-            raise TokenExpiredError("ERROR_CODE_401: Token expired at the 6:00 AM deadline.")
+            raise TokenExpiredError("Kite token expired — run: sanchaya kite login")
 
         return access_token
+
+    def test_missing_session_file_raises(
+        self, make_settings: Callable[..., Settings], tmp_path: Path
+    ) -> None:
+        """No stored session must raise TokenExpiredError, not FileNotFoundError."""
+        settings = make_settings(data_cache_dir=tmp_path)
+        manager = KiteAuthManager(settings, now_fn=lambda: datetime(2026, 6, 14, 10, 0))
+
+        with pytest.raises(TokenExpiredError):
+            manager.get_access_token()
