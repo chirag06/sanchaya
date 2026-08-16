@@ -7,7 +7,6 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-import pytest
 
 from sanchaya.config import Settings
 from sanchaya.data.kite_models import KiteSessionData, KiteTokenResponse
@@ -116,13 +115,3 @@ class KiteAuthManager:
             raise TokenExpiredError("Kite token expired — run: sanchaya kite login")
 
         return access_token
-
-    def test_missing_session_file_raises(
-        self, make_settings: Callable[..., Settings], tmp_path: Path
-    ) -> None:
-        """No stored session must raise TokenExpiredError, not FileNotFoundError."""
-        settings = make_settings(data_cache_dir=tmp_path)
-        manager = KiteAuthManager(settings, now_fn=lambda: datetime(2026, 6, 14, 10, 0))
-
-        with pytest.raises(TokenExpiredError):
-            manager.get_access_token()

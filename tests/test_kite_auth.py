@@ -5,7 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import pytest
+import respx
 
 from sanchaya.config import Settings
 from sanchaya.data.kite_auth import KiteAuthManager, TokenExpiredError
@@ -93,3 +95,43 @@ def test_token_expiry_boundaries(
     else:
         with pytest.raises(TokenExpiredError):
             manager.get_access_token()
+
+
+def test_missing_session_file_raises(
+    make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """No stored session must raise TokenExpiredError, not FileNotFoundError."""
+    settings = make_settings(data_cache_dir=tmp_path)
+    manager = KiteAuthManager(settings, now_fn=lambda: datetime(2026, 6, 14, 10, 0))
+
+    with pytest.raises(TokenExpiredError):
+        manager.get_access_token()
+
+
+@respx.mock
+def test_exchange_token_success(make_settings: Callable[..., Settings]) -> None:
+    """A successful exchange must parse Kite's envelope into KiteSessionData."""
+    route = respx.post("https://api.kite.trade/session/token").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "status": "success",
+                "data": {
+                    "user_id": "AB1234",
+                    "user_name": "Test User",
+                    "access_token": "tok_from_kite",
+                    "login_time": "2026-08-17 09:15:00",
+                },
+            },
+        )
+    )
+    settings = make_settings(kite_api_key="key123", kite_api_secret="secret456")
+    manager = KiteAuthManager(settings)
+
+    session = manager.exchange_token("reqtok789")
+
+    assert session.user_id == "AB1234"
+    assert session.access_token.get_secret_value() == "tok_from_kite"
+    assert route.called
+    sent = route.calls.last.request
+    assert b"checksum=" in sent.content
