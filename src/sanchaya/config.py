@@ -14,7 +14,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -81,6 +81,10 @@ class Settings(BaseSettings):
         default="INFO",
         description="Logging level: DEBUG, INFO, WARNING, ERROR.",
     )
+
+    kite_api_key: str = Field(description="Kite API Key")
+
+    kite_api_secret: SecretStr = Field(description="Kite Secret Key")
 
     def is_live(self) -> bool:
         """Return True if the system is in live (real-money) trading mode."""
